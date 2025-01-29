@@ -1,0 +1,166 @@
+<div class="container mt-5">
+    <h1 class="mb-4">Offer</h1>
+    <p>Represents job offers extended to candidates.</p>
+    <button class="btn btn-success mb-4" id="newOfferButton">Add Offer</button>
+    
+    <!-- Offer Table -->
+    <table id="offersTable" class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Offer Id</th>
+                <th>Status</th>
+                <th>Salary</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+</div>
+
+<!-- Offer Modal -->
+<div class="modal fade" id="offerModal" tabindex="-1" role="dialog" aria-labelledby="offerModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="offerModalLabel">Add Offer</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="offerForm">
+                        <div class="form-group">
+                            <label for="offerId">Offer Id:</label>
+                            <input type="number" class="form-control" id="offerId" name="offerId">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="status">Status:</label>
+                            <input type="text" class="form-control" id="status" name="status">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="salary">Salary:</label>
+                            <input type="number" class="form-control" id="salary" name="salary">
+                        </div>
+                        
+                        
+                    <button type="submit" class="btn btn-primary" id="saveButton">Save</button>
+                    <button type="button" class="btn btn-primary" id="updateButton">Update</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        // Fetch all offers and display them
+        function loadOffers() {
+            $.ajax({
+                url: 'resources/api/offer',
+                method: 'GET',
+                contentType: 'application/json',
+                success: function (data) {
+                    var tableBody = $('#offersTable tbody');
+                    tableBody.empty();
+                    data.forEach(function (offer) {
+                        var row = '<tr>' +
+                            '<td>' + offer.offerId + '</td>' +
+                            '<td>' + offer.status + '</td>' +
+                            '<td>' + offer.salary + '</td>' +
+                            '<td class="table-buttons">' +
+                            '<button class="btn btn-sm btn-primary mr-1" onclick="editOffer(\'' + offer.offerId + '\')">Edit</button>' +
+                            '<button class="btn btn-sm btn-danger" onclick="deleteOffer(\'' + offer.offerId + '\')">Delete</button>' +
+                            '</td>' +
+                            '</tr>';
+                        tableBody.append(row);
+                    });
+                }
+            });
+        }
+
+        loadOffers();
+
+
+        // Open modal for new offer
+        $('#newOfferButton').on('click', function () {
+            $('#offerForm')[0].reset();
+            $('#offerId').closest('.form-group').hide();
+            $('#offerModalLabel').text('Add Offer');
+            $('#saveButton').show();
+            $('#updateButton').hide();
+            $('#offerModal').modal('show');
+        });
+
+        // Create new offer
+        $('#offerForm').on('submit', function (e) {
+            e.preventDefault();
+            var offer = {
+                        status: $('#status').val(),
+                        salary: $('#salary').val(),
+            };
+            $.ajax({
+                url: 'resources/api/offer',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(offer),
+                success: function () {
+                    loadOffers();
+                    $('#offerModal').modal('hide');
+                    $('#offerForm')[0].reset();
+                }
+            });
+        });
+
+        // Update existing offer
+        $('#updateButton').on('click', function () {
+            var offer = {
+                    offerId: $('#offerId').val(),
+                    status: $('#status').val(),
+                    salary: $('#salary').val(),
+            };
+            $.ajax({
+                url: 'resources/api/offer',
+                method: 'PUT',
+                contentType: 'application/json',
+                data: JSON.stringify(offer),
+                success: function () {
+                    loadOffers();
+                    $('#offerModal').modal('hide');
+                    $('#offerForm')[0].reset();
+                }
+            });
+        });
+
+        // Edit offer (populate form)
+        window.editOffer = function (offerId) {
+            $.ajax({
+                url: 'resources/api/offer/' + offerId,
+                method: 'GET',
+                contentType: 'application/json',
+                success: function (offer) {
+                    $('#offerId').val(offer.offerId).prop('disabled', true).closest('.form-group').show();
+                    $('#status').val(offer.status);
+                    $('#salary').val(offer.salary);
+                    $('#offerModalLabel').text('Edit Offer');
+                    $('#saveButton').hide();
+                    $('#updateButton').show();
+                    $('#offerModal').modal('show');
+                }
+            });
+        };
+
+        // Delete offer
+        window.deleteOffer = function (offerId) {
+            $.ajax({
+                url: 'resources/api/offer/' + offerId,
+                method: 'DELETE',
+                success: function () {
+                    loadOffers();
+                }
+            });
+        };
+    });
+</script>

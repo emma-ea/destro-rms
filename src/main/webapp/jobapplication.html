@@ -1,0 +1,232 @@
+<div class="container mt-5">
+    <h1 class="mb-4">Job Application</h1>
+    <p>Represents job applications submitted by candidates.</p>
+    <button class="btn btn-success mb-4" id="newJobapplicationButton">Add Job Application</button>
+    
+    <!-- Jobapplication Table -->
+    <table id="jobapplicationsTable" class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Application Id</th>
+                <th>Status</th>
+                <th>Resume</th>
+                <th>User</th>
+                <th>Candidate</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+</div>
+
+<!-- Jobapplication Modal -->
+<div class="modal fade" id="jobapplicationModal" tabindex="-1" role="dialog" aria-labelledby="jobapplicationModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="jobapplicationModalLabel">Add Job Application</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="jobapplicationForm">
+                        <div class="form-group">
+                            <label for="applicationId">Application Id:</label>
+                            <input type="number" class="form-control" id="applicationId" name="applicationId">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="status">Status:</label>
+                            <input type="text" class="form-control" id="status" name="status">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="resume">Resume:</label>
+                            <input type="text" class="form-control" id="resume" name="resume">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="userSelect">User:</label>
+                            <select class="form-control" id="userSelect" name="user">
+                                <!-- User will be populated here -->
+                            </select>
+                        </div>
+                        
+                        
+                        <div class="form-group">
+                            <label for="candidateSelect">Candidate:</label>
+                            <select class="form-control" id="candidateSelect" name="candidate">
+                                <!-- Candidate will be populated here -->
+                            </select>
+                        </div>
+                        
+                    <button type="submit" class="btn btn-primary" id="saveButton">Save</button>
+                    <button type="button" class="btn btn-primary" id="updateButton">Update</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        // Fetch all jobapplications and display them
+        function loadJobapplications() {
+            $.ajax({
+                url: 'resources/api/job-application',
+                method: 'GET',
+                contentType: 'application/json',
+                success: function (data) {
+                    var tableBody = $('#jobapplicationsTable tbody');
+                    tableBody.empty();
+                    data.forEach(function (jobapplication) {
+                        var row = '<tr>' +
+                            '<td>' + jobapplication.applicationId + '</td>' +
+                            '<td>' + jobapplication.status + '</td>' +
+                            '<td>' + jobapplication.resume + '</td>' +
+                            '<td>' + (jobapplication?.user?.username || '') + '</td>' +
+                            '<td>' + (jobapplication?.candidate?.name || '') + '</td>' +
+                            '<td class="table-buttons">' +
+                            '<button class="btn btn-sm btn-primary mr-1" onclick="editJobapplication(\'' + jobapplication.applicationId + '\')">Edit</button>' +
+                            '<button class="btn btn-sm btn-danger" onclick="deleteJobapplication(\'' + jobapplication.applicationId + '\')">Delete</button>' +
+                            '</td>' +
+                            '</tr>';
+                        tableBody.append(row);
+                    });
+                }
+            });
+        }
+
+        loadJobapplications();
+
+        function loadUser() {
+            $.ajax({
+                url: 'resources/api/user',
+                method: 'GET',
+                contentType: 'application/json',
+                success: function (data) {
+                    var userSelect = $('#userSelect');
+                    userSelect.empty();
+                    data.forEach(function (user) {
+                        var option = '<option value="' + user.userId + '">' + user.username + '</option>';
+                        userSelect.append(option);
+                    });
+                }
+            });
+        }
+        loadUser();
+        function loadCandidate() {
+            $.ajax({
+                url: 'resources/api/candidate',
+                method: 'GET',
+                contentType: 'application/json',
+                success: function (data) {
+                    var candidateSelect = $('#candidateSelect');
+                    candidateSelect.empty();
+                    data.forEach(function (candidate) {
+                        var option = '<option value="' + candidate.candidateId + '">' + candidate.name + '</option>';
+                        candidateSelect.append(option);
+                    });
+                }
+            });
+        }
+        loadCandidate();
+
+        // Open modal for new jobapplication
+        $('#newJobapplicationButton').on('click', function () {
+            $('#jobapplicationForm')[0].reset();
+            $('#applicationId').closest('.form-group').hide();
+            $('#jobapplicationModalLabel').text('Add Job Application');
+            $('#saveButton').show();
+            $('#updateButton').hide();
+            $('#jobapplicationModal').modal('show');
+            loadUser();
+            loadCandidate();
+        });
+
+        // Create new jobapplication
+        $('#jobapplicationForm').on('submit', function (e) {
+            e.preventDefault();
+            var jobapplication = {
+                        status: $('#status').val(),
+                        resume: $('#resume').val(),
+                    user: {
+                        userId: $('#userSelect').val()
+                    },
+                    candidate: {
+                        candidateId: $('#candidateSelect').val()
+                    },
+            };
+            $.ajax({
+                url: 'resources/api/job-application',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(jobapplication),
+                success: function () {
+                    loadJobapplications();
+                    $('#jobapplicationModal').modal('hide');
+                    $('#jobapplicationForm')[0].reset();
+                }
+            });
+        });
+
+        // Update existing jobapplication
+        $('#updateButton').on('click', function () {
+            var jobapplication = {
+                    applicationId: $('#applicationId').val(),
+                    status: $('#status').val(),
+                    resume: $('#resume').val(),
+                    user: {
+                        userId: $('#userSelect').val()
+                    },
+                    candidate: {
+                        candidateId: $('#candidateSelect').val()
+                    },
+            };
+            $.ajax({
+                url: 'resources/api/job-application',
+                method: 'PUT',
+                contentType: 'application/json',
+                data: JSON.stringify(jobapplication),
+                success: function () {
+                    loadJobapplications();
+                    $('#jobapplicationModal').modal('hide');
+                    $('#jobapplicationForm')[0].reset();
+                }
+            });
+        });
+
+        // Edit jobapplication (populate form)
+        window.editJobapplication = function (applicationId) {
+            $.ajax({
+                url: 'resources/api/job-application/' + applicationId,
+                method: 'GET',
+                contentType: 'application/json',
+                success: function (jobapplication) {
+                    $('#applicationId').val(jobapplication.applicationId).prop('disabled', true).closest('.form-group').show();
+                    $('#status').val(jobapplication.status);
+                    $('#resume').val(jobapplication.resume);
+                    $('#userSelect').val(jobapplication?.user?.userId);
+                    $('#candidateSelect').val(jobapplication?.candidate?.candidateId);
+                    $('#jobapplicationModalLabel').text('Edit Job Application');
+                    $('#saveButton').hide();
+                    $('#updateButton').show();
+                    $('#jobapplicationModal').modal('show');
+                }
+            });
+        };
+
+        // Delete jobapplication
+        window.deleteJobapplication = function (applicationId) {
+            $.ajax({
+                url: 'resources/api/job-application/' + applicationId,
+                method: 'DELETE',
+                success: function () {
+                    loadJobapplications();
+                }
+            });
+        };
+    });
+</script>

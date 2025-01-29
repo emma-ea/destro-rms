@@ -1,0 +1,232 @@
+<div class="container mt-5">
+    <h1 class="mb-4">Interview</h1>
+    <p>Represents interviews scheduled for candidates.</p>
+    <button class="btn btn-success mb-4" id="newInterviewButton">Add Interview</button>
+    
+    <!-- Interview Table -->
+    <table id="interviewsTable" class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Interview Id</th>
+                <th>Date</th>
+                <th>Location</th>
+                <th>Recruiter</th>
+                <th>Feedback</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+</div>
+
+<!-- Interview Modal -->
+<div class="modal fade" id="interviewModal" tabindex="-1" role="dialog" aria-labelledby="interviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="interviewModalLabel">Add Interview</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="interviewForm">
+                        <div class="form-group">
+                            <label for="interviewId">Interview Id:</label>
+                            <input type="number" class="form-control" id="interviewId" name="interviewId">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="date">Date:</label>
+                            <input type="date" class="form-control" id="date" name="date">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="location">Location:</label>
+                            <input type="text" class="form-control" id="location" name="location">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="recruiterSelect">Recruiter:</label>
+                            <select class="form-control" id="recruiterSelect" name="recruiter">
+                                <!-- Recruiter will be populated here -->
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="feedbackSelect">Feedback:</label>
+                            <select class="form-control" id="feedbackSelect" name="feedback">
+                                <!-- Feedback will be populated here -->
+                            </select>
+                        </div>
+                        
+                        
+                    <button type="submit" class="btn btn-primary" id="saveButton">Save</button>
+                    <button type="button" class="btn btn-primary" id="updateButton">Update</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        // Fetch all interviews and display them
+        function loadInterviews() {
+            $.ajax({
+                url: 'resources/api/interview',
+                method: 'GET',
+                contentType: 'application/json',
+                success: function (data) {
+                    var tableBody = $('#interviewsTable tbody');
+                    tableBody.empty();
+                    data.forEach(function (interview) {
+                        var row = '<tr>' +
+                            '<td>' + interview.interviewId + '</td>' +
+                            '<td>' + interview.date + '</td>' +
+                            '<td>' + interview.location + '</td>' +
+                            '<td>' + (interview?.recruiter?.name || '') + '</td>' +
+                            '<td>' + (interview?.feedback?.comments || '') + '</td>' +
+                            '<td class="table-buttons">' +
+                            '<button class="btn btn-sm btn-primary mr-1" onclick="editInterview(\'' + interview.interviewId + '\')">Edit</button>' +
+                            '<button class="btn btn-sm btn-danger" onclick="deleteInterview(\'' + interview.interviewId + '\')">Delete</button>' +
+                            '</td>' +
+                            '</tr>';
+                        tableBody.append(row);
+                    });
+                }
+            });
+        }
+
+        loadInterviews();
+
+        function loadRecruiter() {
+            $.ajax({
+                url: 'resources/api/recruiter',
+                method: 'GET',
+                contentType: 'application/json',
+                success: function (data) {
+                    var recruiterSelect = $('#recruiterSelect');
+                    recruiterSelect.empty();
+                    data.forEach(function (recruiter) {
+                        var option = '<option value="' + recruiter.recruiterId + '">' + recruiter.name + '</option>';
+                        recruiterSelect.append(option);
+                    });
+                }
+            });
+        }
+        loadRecruiter();
+        function loadFeedback() {
+            $.ajax({
+                url: 'resources/api/feedback',
+                method: 'GET',
+                contentType: 'application/json',
+                success: function (data) {
+                    var feedbackSelect = $('#feedbackSelect');
+                    feedbackSelect.empty();
+                    data.forEach(function (feedback) {
+                        var option = '<option value="' + feedback.feedbackId + '">' + feedback.comments + '</option>';
+                        feedbackSelect.append(option);
+                    });
+                }
+            });
+        }
+        loadFeedback();
+
+        // Open modal for new interview
+        $('#newInterviewButton').on('click', function () {
+            $('#interviewForm')[0].reset();
+            $('#interviewId').closest('.form-group').hide();
+            $('#interviewModalLabel').text('Add Interview');
+            $('#saveButton').show();
+            $('#updateButton').hide();
+            $('#interviewModal').modal('show');
+            loadRecruiter();
+            loadFeedback();
+        });
+
+        // Create new interview
+        $('#interviewForm').on('submit', function (e) {
+            e.preventDefault();
+            var interview = {
+                        date: $('#date').val(),
+                        location: $('#location').val(),
+                    recruiter: {
+                        recruiterId: $('#recruiterSelect').val()
+                    },
+                    feedback: {
+                        feedbackId: $('#feedbackSelect').val()
+                    },
+            };
+            $.ajax({
+                url: 'resources/api/interview',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(interview),
+                success: function () {
+                    loadInterviews();
+                    $('#interviewModal').modal('hide');
+                    $('#interviewForm')[0].reset();
+                }
+            });
+        });
+
+        // Update existing interview
+        $('#updateButton').on('click', function () {
+            var interview = {
+                    interviewId: $('#interviewId').val(),
+                    date: $('#date').val(),
+                    location: $('#location').val(),
+                    recruiter: {
+                        recruiterId: $('#recruiterSelect').val()
+                    },
+                    feedback: {
+                        feedbackId: $('#feedbackSelect').val()
+                    },
+            };
+            $.ajax({
+                url: 'resources/api/interview',
+                method: 'PUT',
+                contentType: 'application/json',
+                data: JSON.stringify(interview),
+                success: function () {
+                    loadInterviews();
+                    $('#interviewModal').modal('hide');
+                    $('#interviewForm')[0].reset();
+                }
+            });
+        });
+
+        // Edit interview (populate form)
+        window.editInterview = function (interviewId) {
+            $.ajax({
+                url: 'resources/api/interview/' + interviewId,
+                method: 'GET',
+                contentType: 'application/json',
+                success: function (interview) {
+                    $('#interviewId').val(interview.interviewId).prop('disabled', true).closest('.form-group').show();
+                    $('#date').val(interview.date);
+                    $('#location').val(interview.location);
+                    $('#recruiterSelect').val(interview?.recruiter?.recruiterId);
+                    $('#feedbackSelect').val(interview?.feedback?.feedbackId);
+                    $('#interviewModalLabel').text('Edit Interview');
+                    $('#saveButton').hide();
+                    $('#updateButton').show();
+                    $('#interviewModal').modal('show');
+                }
+            });
+        };
+
+        // Delete interview
+        window.deleteInterview = function (interviewId) {
+            $.ajax({
+                url: 'resources/api/interview/' + interviewId,
+                method: 'DELETE',
+                success: function () {
+                    loadInterviews();
+                }
+            });
+        };
+    });
+</script>

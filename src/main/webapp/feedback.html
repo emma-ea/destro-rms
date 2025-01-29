@@ -1,0 +1,166 @@
+<div class="container mt-5">
+    <h1 class="mb-4">Feedback</h1>
+    <p>Represents feedback provided for candidates.</p>
+    <button class="btn btn-success mb-4" id="newFeedbackButton">Add Feedback</button>
+    
+    <!-- Feedback Table -->
+    <table id="feedbacksTable" class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Feedback Id</th>
+                <th>Comments</th>
+                <th>Rating</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+</div>
+
+<!-- Feedback Modal -->
+<div class="modal fade" id="feedbackModal" tabindex="-1" role="dialog" aria-labelledby="feedbackModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="feedbackModalLabel">Add Feedback</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="feedbackForm">
+                        <div class="form-group">
+                            <label for="feedbackId">Feedback Id:</label>
+                            <input type="number" class="form-control" id="feedbackId" name="feedbackId">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="comments">Comments:</label>
+                            <input type="text" class="form-control" id="comments" name="comments">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="rating">Rating:</label>
+                            <input type="number" class="form-control" id="rating" name="rating">
+                        </div>
+                        
+                        
+                    <button type="submit" class="btn btn-primary" id="saveButton">Save</button>
+                    <button type="button" class="btn btn-primary" id="updateButton">Update</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        // Fetch all feedbacks and display them
+        function loadFeedbacks() {
+            $.ajax({
+                url: 'resources/api/feedback',
+                method: 'GET',
+                contentType: 'application/json',
+                success: function (data) {
+                    var tableBody = $('#feedbacksTable tbody');
+                    tableBody.empty();
+                    data.forEach(function (feedback) {
+                        var row = '<tr>' +
+                            '<td>' + feedback.feedbackId + '</td>' +
+                            '<td>' + feedback.comments + '</td>' +
+                            '<td>' + feedback.rating + '</td>' +
+                            '<td class="table-buttons">' +
+                            '<button class="btn btn-sm btn-primary mr-1" onclick="editFeedback(\'' + feedback.feedbackId + '\')">Edit</button>' +
+                            '<button class="btn btn-sm btn-danger" onclick="deleteFeedback(\'' + feedback.feedbackId + '\')">Delete</button>' +
+                            '</td>' +
+                            '</tr>';
+                        tableBody.append(row);
+                    });
+                }
+            });
+        }
+
+        loadFeedbacks();
+
+
+        // Open modal for new feedback
+        $('#newFeedbackButton').on('click', function () {
+            $('#feedbackForm')[0].reset();
+            $('#feedbackId').closest('.form-group').hide();
+            $('#feedbackModalLabel').text('Add Feedback');
+            $('#saveButton').show();
+            $('#updateButton').hide();
+            $('#feedbackModal').modal('show');
+        });
+
+        // Create new feedback
+        $('#feedbackForm').on('submit', function (e) {
+            e.preventDefault();
+            var feedback = {
+                        comments: $('#comments').val(),
+                        rating: $('#rating').val(),
+            };
+            $.ajax({
+                url: 'resources/api/feedback',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(feedback),
+                success: function () {
+                    loadFeedbacks();
+                    $('#feedbackModal').modal('hide');
+                    $('#feedbackForm')[0].reset();
+                }
+            });
+        });
+
+        // Update existing feedback
+        $('#updateButton').on('click', function () {
+            var feedback = {
+                    feedbackId: $('#feedbackId').val(),
+                    comments: $('#comments').val(),
+                    rating: $('#rating').val(),
+            };
+            $.ajax({
+                url: 'resources/api/feedback',
+                method: 'PUT',
+                contentType: 'application/json',
+                data: JSON.stringify(feedback),
+                success: function () {
+                    loadFeedbacks();
+                    $('#feedbackModal').modal('hide');
+                    $('#feedbackForm')[0].reset();
+                }
+            });
+        });
+
+        // Edit feedback (populate form)
+        window.editFeedback = function (feedbackId) {
+            $.ajax({
+                url: 'resources/api/feedback/' + feedbackId,
+                method: 'GET',
+                contentType: 'application/json',
+                success: function (feedback) {
+                    $('#feedbackId').val(feedback.feedbackId).prop('disabled', true).closest('.form-group').show();
+                    $('#comments').val(feedback.comments);
+                    $('#rating').val(feedback.rating);
+                    $('#feedbackModalLabel').text('Edit Feedback');
+                    $('#saveButton').hide();
+                    $('#updateButton').show();
+                    $('#feedbackModal').modal('show');
+                }
+            });
+        };
+
+        // Delete feedback
+        window.deleteFeedback = function (feedbackId) {
+            $.ajax({
+                url: 'resources/api/feedback/' + feedbackId,
+                method: 'DELETE',
+                success: function () {
+                    loadFeedbacks();
+                }
+            });
+        };
+    });
+</script>

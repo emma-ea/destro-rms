@@ -1,0 +1,166 @@
+<div class="container mt-5">
+    <h1 class="mb-4">User</h1>
+    <p>Represents the users of the job application system.</p>
+    <button class="btn btn-success mb-4" id="newUserButton">Add User</button>
+    
+    <!-- User Table -->
+    <table id="usersTable" class="table table-bordered">
+        <thead>
+            <tr>
+                <th>User Id</th>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+</div>
+
+<!-- User Modal -->
+<div class="modal fade" id="userModal" tabindex="-1" role="dialog" aria-labelledby="userModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="userModalLabel">Add User</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="userForm">
+                        <div class="form-group">
+                            <label for="userId">User Id:</label>
+                            <input type="text" class="form-control" id="userId" name="userId">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="username">Username:</label>
+                            <input type="text" class="form-control" id="username" name="username">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="email">Email:</label>
+                            <input type="text" class="form-control" id="email" name="email">
+                        </div>
+                        
+                        
+                    <button type="submit" class="btn btn-primary" id="saveButton">Save</button>
+                    <button type="button" class="btn btn-primary" id="updateButton">Update</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        // Fetch all users and display them
+        function loadUsers() {
+            $.ajax({
+                url: 'resources/api/user',
+                method: 'GET',
+                contentType: 'application/json',
+                success: function (data) {
+                    var tableBody = $('#usersTable tbody');
+                    tableBody.empty();
+                    data.forEach(function (user) {
+                        var row = '<tr>' +
+                            '<td>' + user.userId + '</td>' +
+                            '<td>' + user.username + '</td>' +
+                            '<td>' + user.email + '</td>' +
+                            '<td class="table-buttons">' +
+                            '<button class="btn btn-sm btn-primary mr-1" onclick="editUser(\'' + user.userId + '\')">Edit</button>' +
+                            '<button class="btn btn-sm btn-danger" onclick="deleteUser(\'' + user.userId + '\')">Delete</button>' +
+                            '</td>' +
+                            '</tr>';
+                        tableBody.append(row);
+                    });
+                }
+            });
+        }
+
+        loadUsers();
+
+
+        // Open modal for new user
+        $('#newUserButton').on('click', function () {
+            $('#userForm')[0].reset();
+            $('#userId').closest('.form-group').hide();
+            $('#userModalLabel').text('Add User');
+            $('#saveButton').show();
+            $('#updateButton').hide();
+            $('#userModal').modal('show');
+        });
+
+        // Create new user
+        $('#userForm').on('submit', function (e) {
+            e.preventDefault();
+            var user = {
+                        username: $('#username').val(),
+                        email: $('#email').val(),
+            };
+            $.ajax({
+                url: 'resources/api/user',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(user),
+                success: function () {
+                    loadUsers();
+                    $('#userModal').modal('hide');
+                    $('#userForm')[0].reset();
+                }
+            });
+        });
+
+        // Update existing user
+        $('#updateButton').on('click', function () {
+            var user = {
+                    userId: $('#userId').val(),
+                    username: $('#username').val(),
+                    email: $('#email').val(),
+            };
+            $.ajax({
+                url: 'resources/api/user',
+                method: 'PUT',
+                contentType: 'application/json',
+                data: JSON.stringify(user),
+                success: function () {
+                    loadUsers();
+                    $('#userModal').modal('hide');
+                    $('#userForm')[0].reset();
+                }
+            });
+        });
+
+        // Edit user (populate form)
+        window.editUser = function (userId) {
+            $.ajax({
+                url: 'resources/api/user/' + userId,
+                method: 'GET',
+                contentType: 'application/json',
+                success: function (user) {
+                    $('#userId').val(user.userId).prop('disabled', true).closest('.form-group').show();
+                    $('#username').val(user.username);
+                    $('#email').val(user.email);
+                    $('#userModalLabel').text('Edit User');
+                    $('#saveButton').hide();
+                    $('#updateButton').show();
+                    $('#userModal').modal('show');
+                }
+            });
+        };
+
+        // Delete user
+        window.deleteUser = function (userId) {
+            $.ajax({
+                url: 'resources/api/user/' + userId,
+                method: 'DELETE',
+                success: function () {
+                    loadUsers();
+                }
+            });
+        };
+    });
+</script>

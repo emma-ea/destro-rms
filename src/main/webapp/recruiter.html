@@ -1,0 +1,166 @@
+<div class="container mt-5">
+    <h1 class="mb-4">Recruiter</h1>
+    <p>Represents recruiters managing job applications.</p>
+    <button class="btn btn-success mb-4" id="newRecruiterButton">Add Recruiter</button>
+    
+    <!-- Recruiter Table -->
+    <table id="recruitersTable" class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Recruiter Id</th>
+                <th>Name</th>
+                <th>Department</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+</div>
+
+<!-- Recruiter Modal -->
+<div class="modal fade" id="recruiterModal" tabindex="-1" role="dialog" aria-labelledby="recruiterModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="recruiterModalLabel">Add Recruiter</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="recruiterForm">
+                        <div class="form-group">
+                            <label for="recruiterId">Recruiter Id:</label>
+                            <input type="number" class="form-control" id="recruiterId" name="recruiterId">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="name">Name:</label>
+                            <input type="text" class="form-control" id="name" name="name">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="department">Department:</label>
+                            <input type="text" class="form-control" id="department" name="department">
+                        </div>
+                        
+                        
+                    <button type="submit" class="btn btn-primary" id="saveButton">Save</button>
+                    <button type="button" class="btn btn-primary" id="updateButton">Update</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        // Fetch all recruiters and display them
+        function loadRecruiters() {
+            $.ajax({
+                url: 'resources/api/recruiter',
+                method: 'GET',
+                contentType: 'application/json',
+                success: function (data) {
+                    var tableBody = $('#recruitersTable tbody');
+                    tableBody.empty();
+                    data.forEach(function (recruiter) {
+                        var row = '<tr>' +
+                            '<td>' + recruiter.recruiterId + '</td>' +
+                            '<td>' + recruiter.name + '</td>' +
+                            '<td>' + recruiter.department + '</td>' +
+                            '<td class="table-buttons">' +
+                            '<button class="btn btn-sm btn-primary mr-1" onclick="editRecruiter(\'' + recruiter.recruiterId + '\')">Edit</button>' +
+                            '<button class="btn btn-sm btn-danger" onclick="deleteRecruiter(\'' + recruiter.recruiterId + '\')">Delete</button>' +
+                            '</td>' +
+                            '</tr>';
+                        tableBody.append(row);
+                    });
+                }
+            });
+        }
+
+        loadRecruiters();
+
+
+        // Open modal for new recruiter
+        $('#newRecruiterButton').on('click', function () {
+            $('#recruiterForm')[0].reset();
+            $('#recruiterId').closest('.form-group').hide();
+            $('#recruiterModalLabel').text('Add Recruiter');
+            $('#saveButton').show();
+            $('#updateButton').hide();
+            $('#recruiterModal').modal('show');
+        });
+
+        // Create new recruiter
+        $('#recruiterForm').on('submit', function (e) {
+            e.preventDefault();
+            var recruiter = {
+                        name: $('#name').val(),
+                        department: $('#department').val(),
+            };
+            $.ajax({
+                url: 'resources/api/recruiter',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(recruiter),
+                success: function () {
+                    loadRecruiters();
+                    $('#recruiterModal').modal('hide');
+                    $('#recruiterForm')[0].reset();
+                }
+            });
+        });
+
+        // Update existing recruiter
+        $('#updateButton').on('click', function () {
+            var recruiter = {
+                    recruiterId: $('#recruiterId').val(),
+                    name: $('#name').val(),
+                    department: $('#department').val(),
+            };
+            $.ajax({
+                url: 'resources/api/recruiter',
+                method: 'PUT',
+                contentType: 'application/json',
+                data: JSON.stringify(recruiter),
+                success: function () {
+                    loadRecruiters();
+                    $('#recruiterModal').modal('hide');
+                    $('#recruiterForm')[0].reset();
+                }
+            });
+        });
+
+        // Edit recruiter (populate form)
+        window.editRecruiter = function (recruiterId) {
+            $.ajax({
+                url: 'resources/api/recruiter/' + recruiterId,
+                method: 'GET',
+                contentType: 'application/json',
+                success: function (recruiter) {
+                    $('#recruiterId').val(recruiter.recruiterId).prop('disabled', true).closest('.form-group').show();
+                    $('#name').val(recruiter.name);
+                    $('#department').val(recruiter.department);
+                    $('#recruiterModalLabel').text('Edit Recruiter');
+                    $('#saveButton').hide();
+                    $('#updateButton').show();
+                    $('#recruiterModal').modal('show');
+                }
+            });
+        };
+
+        // Delete recruiter
+        window.deleteRecruiter = function (recruiterId) {
+            $.ajax({
+                url: 'resources/api/recruiter/' + recruiterId,
+                method: 'DELETE',
+                success: function () {
+                    loadRecruiters();
+                }
+            });
+        };
+    });
+</script>

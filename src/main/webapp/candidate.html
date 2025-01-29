@@ -1,0 +1,242 @@
+<div class="container mt-5">
+    <h1 class="mb-4">Candidate</h1>
+    <p>Represents candidates applying for jobs.</p>
+    <button class="btn btn-success mb-4" id="newCandidateButton">Add Candidate</button>
+    
+    <!-- Candidate Table -->
+    <table id="candidatesTable" class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Candidate Id</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Offer</th>
+                <th>Interview</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+</div>
+
+<!-- Candidate Modal -->
+<div class="modal fade" id="candidateModal" tabindex="-1" role="dialog" aria-labelledby="candidateModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="candidateModalLabel">Add Candidate</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="candidateForm">
+                        <div class="form-group">
+                            <label for="candidateId">Candidate Id:</label>
+                            <input type="number" class="form-control" id="candidateId" name="candidateId">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="name">Name:</label>
+                            <input type="text" class="form-control" id="name" name="name">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="email">Email:</label>
+                            <input type="text" class="form-control" id="email" name="email">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="phone">Phone:</label>
+                            <input type="text" class="form-control" id="phone" name="phone">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="offerSelect">Offer:</label>
+                            <select class="form-control" id="offerSelect" name="offer">
+                                <!-- Offer will be populated here -->
+                            </select>
+                        </div>
+                        
+                        
+                        <div class="form-group">
+                            <label for="interviewSelect">Interview:</label>
+                            <select class="form-control" id="interviewSelect" name="interview">
+                                <!-- Interview will be populated here -->
+                            </select>
+                        </div>
+                        
+                    <button type="submit" class="btn btn-primary" id="saveButton">Save</button>
+                    <button type="button" class="btn btn-primary" id="updateButton">Update</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        // Fetch all candidates and display them
+        function loadCandidates() {
+            $.ajax({
+                url: 'resources/api/candidate',
+                method: 'GET',
+                contentType: 'application/json',
+                success: function (data) {
+                    var tableBody = $('#candidatesTable tbody');
+                    tableBody.empty();
+                    data.forEach(function (candidate) {
+                        var row = '<tr>' +
+                            '<td>' + candidate.candidateId + '</td>' +
+                            '<td>' + candidate.name + '</td>' +
+                            '<td>' + candidate.email + '</td>' +
+                            '<td>' + candidate.phone + '</td>' +
+                            '<td>' + (candidate?.offer?.status || '') + '</td>' +
+                            '<td>' + (candidate?.interview?.date || '') + '</td>' +
+                            '<td class="table-buttons">' +
+                            '<button class="btn btn-sm btn-primary mr-1" onclick="editCandidate(\'' + candidate.candidateId + '\')">Edit</button>' +
+                            '<button class="btn btn-sm btn-danger" onclick="deleteCandidate(\'' + candidate.candidateId + '\')">Delete</button>' +
+                            '</td>' +
+                            '</tr>';
+                        tableBody.append(row);
+                    });
+                }
+            });
+        }
+
+        loadCandidates();
+
+        function loadOffer() {
+            $.ajax({
+                url: 'resources/api/offer',
+                method: 'GET',
+                contentType: 'application/json',
+                success: function (data) {
+                    var offerSelect = $('#offerSelect');
+                    offerSelect.empty();
+                    data.forEach(function (offer) {
+                        var option = '<option value="' + offer.offerId + '">' + offer.status + '</option>';
+                        offerSelect.append(option);
+                    });
+                }
+            });
+        }
+        loadOffer();
+        function loadInterview() {
+            $.ajax({
+                url: 'resources/api/interview',
+                method: 'GET',
+                contentType: 'application/json',
+                success: function (data) {
+                    var interviewSelect = $('#interviewSelect');
+                    interviewSelect.empty();
+                    data.forEach(function (interview) {
+                        var option = '<option value="' + interview.interviewId + '">' + interview.date + '</option>';
+                        interviewSelect.append(option);
+                    });
+                }
+            });
+        }
+        loadInterview();
+
+        // Open modal for new candidate
+        $('#newCandidateButton').on('click', function () {
+            $('#candidateForm')[0].reset();
+            $('#candidateId').closest('.form-group').hide();
+            $('#candidateModalLabel').text('Add Candidate');
+            $('#saveButton').show();
+            $('#updateButton').hide();
+            $('#candidateModal').modal('show');
+            loadOffer();
+            loadInterview();
+        });
+
+        // Create new candidate
+        $('#candidateForm').on('submit', function (e) {
+            e.preventDefault();
+            var candidate = {
+                        name: $('#name').val(),
+                        email: $('#email').val(),
+                        phone: $('#phone').val(),
+                    offer: {
+                        offerId: $('#offerSelect').val()
+                    },
+                    interview: {
+                        interviewId: $('#interviewSelect').val()
+                    },
+            };
+            $.ajax({
+                url: 'resources/api/candidate',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(candidate),
+                success: function () {
+                    loadCandidates();
+                    $('#candidateModal').modal('hide');
+                    $('#candidateForm')[0].reset();
+                }
+            });
+        });
+
+        // Update existing candidate
+        $('#updateButton').on('click', function () {
+            var candidate = {
+                    candidateId: $('#candidateId').val(),
+                    name: $('#name').val(),
+                    email: $('#email').val(),
+                    phone: $('#phone').val(),
+                    offer: {
+                        offerId: $('#offerSelect').val()
+                    },
+                    interview: {
+                        interviewId: $('#interviewSelect').val()
+                    },
+            };
+            $.ajax({
+                url: 'resources/api/candidate',
+                method: 'PUT',
+                contentType: 'application/json',
+                data: JSON.stringify(candidate),
+                success: function () {
+                    loadCandidates();
+                    $('#candidateModal').modal('hide');
+                    $('#candidateForm')[0].reset();
+                }
+            });
+        });
+
+        // Edit candidate (populate form)
+        window.editCandidate = function (candidateId) {
+            $.ajax({
+                url: 'resources/api/candidate/' + candidateId,
+                method: 'GET',
+                contentType: 'application/json',
+                success: function (candidate) {
+                    $('#candidateId').val(candidate.candidateId).prop('disabled', true).closest('.form-group').show();
+                    $('#name').val(candidate.name);
+                    $('#email').val(candidate.email);
+                    $('#phone').val(candidate.phone);
+                    $('#offerSelect').val(candidate?.offer?.offerId);
+                    $('#interviewSelect').val(candidate?.interview?.interviewId);
+                    $('#candidateModalLabel').text('Edit Candidate');
+                    $('#saveButton').hide();
+                    $('#updateButton').show();
+                    $('#candidateModal').modal('show');
+                }
+            });
+        };
+
+        // Delete candidate
+        window.deleteCandidate = function (candidateId) {
+            $.ajax({
+                url: 'resources/api/candidate/' + candidateId,
+                method: 'DELETE',
+                success: function () {
+                    loadCandidates();
+                }
+            });
+        };
+    });
+</script>

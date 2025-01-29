@@ -1,0 +1,218 @@
+<div class="container mt-5">
+    <h1 class="mb-4">Job</h1>
+    <p>Represents job listings available in the system.</p>
+    <button class="btn btn-success mb-4" id="newJobButton">Add Job</button>
+    
+    <!-- Job Table -->
+    <table id="jobsTable" class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Job Id</th>
+                <th>Title</th>
+                <th>Description</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Application</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+</div>
+
+<!-- Job Modal -->
+<div class="modal fade" id="jobModal" tabindex="-1" role="dialog" aria-labelledby="jobModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="jobModalLabel">Add Job</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="jobForm">
+                        <div class="form-group">
+                            <label for="jobId">Job Id:</label>
+                            <input type="number" class="form-control" id="jobId" name="jobId">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="title">Title:</label>
+                            <input type="text" class="form-control" id="title" name="title">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="description">Description:</label>
+                            <input type="text" class="form-control" id="description" name="description">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="startDate">Start Date:</label>
+                            <input type="date" class="form-control" id="startDate" name="startDate">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="endDate">End Date:</label>
+                            <input type="date" class="form-control" id="endDate" name="endDate">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="applicationSelect">Application:</label>
+                            <select class="form-control" id="applicationSelect" name="application">
+                                <!-- Application will be populated here -->
+                            </select>
+                        </div>
+                        
+                    <button type="submit" class="btn btn-primary" id="saveButton">Save</button>
+                    <button type="button" class="btn btn-primary" id="updateButton">Update</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        // Fetch all jobs and display them
+        function loadJobs() {
+            $.ajax({
+                url: 'resources/api/job',
+                method: 'GET',
+                contentType: 'application/json',
+                success: function (data) {
+                    var tableBody = $('#jobsTable tbody');
+                    tableBody.empty();
+                    data.forEach(function (job) {
+                        var row = '<tr>' +
+                            '<td>' + job.jobId + '</td>' +
+                            '<td>' + job.title + '</td>' +
+                            '<td>' + job.description + '</td>' +
+                            '<td>' + job.startDate + '</td>' +
+                            '<td>' + job.endDate + '</td>' +
+                            '<td>' + (job?.application?.status || '') + '</td>' +
+                            '<td class="table-buttons">' +
+                            '<button class="btn btn-sm btn-primary mr-1" onclick="editJob(\'' + job.jobId + '\')">Edit</button>' +
+                            '<button class="btn btn-sm btn-danger" onclick="deleteJob(\'' + job.jobId + '\')">Delete</button>' +
+                            '</td>' +
+                            '</tr>';
+                        tableBody.append(row);
+                    });
+                }
+            });
+        }
+
+        loadJobs();
+
+        function loadApplication() {
+            $.ajax({
+                url: 'resources/api/job-application',
+                method: 'GET',
+                contentType: 'application/json',
+                success: function (data) {
+                    var applicationSelect = $('#applicationSelect');
+                    applicationSelect.empty();
+                    data.forEach(function (application) {
+                        var option = '<option value="' + application.applicationId + '">' + application.status + '</option>';
+                        applicationSelect.append(option);
+                    });
+                }
+            });
+        }
+        loadApplication();
+
+        // Open modal for new job
+        $('#newJobButton').on('click', function () {
+            $('#jobForm')[0].reset();
+            $('#jobId').closest('.form-group').hide();
+            $('#jobModalLabel').text('Add Job');
+            $('#saveButton').show();
+            $('#updateButton').hide();
+            $('#jobModal').modal('show');
+            loadApplication();
+        });
+
+        // Create new job
+        $('#jobForm').on('submit', function (e) {
+            e.preventDefault();
+            var job = {
+                        title: $('#title').val(),
+                        description: $('#description').val(),
+                        startDate: $('#startDate').val(),
+                        endDate: $('#endDate').val(),
+                    application: {
+                        applicationId: $('#applicationSelect').val()
+                    },
+            };
+            $.ajax({
+                url: 'resources/api/job',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(job),
+                success: function () {
+                    loadJobs();
+                    $('#jobModal').modal('hide');
+                    $('#jobForm')[0].reset();
+                }
+            });
+        });
+
+        // Update existing job
+        $('#updateButton').on('click', function () {
+            var job = {
+                    jobId: $('#jobId').val(),
+                    title: $('#title').val(),
+                    description: $('#description').val(),
+                    startDate: $('#startDate').val(),
+                    endDate: $('#endDate').val(),
+                    application: {
+                        applicationId: $('#applicationSelect').val()
+                    },
+            };
+            $.ajax({
+                url: 'resources/api/job',
+                method: 'PUT',
+                contentType: 'application/json',
+                data: JSON.stringify(job),
+                success: function () {
+                    loadJobs();
+                    $('#jobModal').modal('hide');
+                    $('#jobForm')[0].reset();
+                }
+            });
+        });
+
+        // Edit job (populate form)
+        window.editJob = function (jobId) {
+            $.ajax({
+                url: 'resources/api/job/' + jobId,
+                method: 'GET',
+                contentType: 'application/json',
+                success: function (job) {
+                    $('#jobId').val(job.jobId).prop('disabled', true).closest('.form-group').show();
+                    $('#title').val(job.title);
+                    $('#description').val(job.description);
+                    $('#startDate').val(job.startDate);
+                    $('#endDate').val(job.endDate);
+                    $('#applicationSelect').val(job?.application?.applicationId);
+                    $('#jobModalLabel').text('Edit Job');
+                    $('#saveButton').hide();
+                    $('#updateButton').show();
+                    $('#jobModal').modal('show');
+                }
+            });
+        };
+
+        // Delete job
+        window.deleteJob = function (jobId) {
+            $.ajax({
+                url: 'resources/api/job/' + jobId,
+                method: 'DELETE',
+                success: function () {
+                    loadJobs();
+                }
+            });
+        };
+    });
+</script>
